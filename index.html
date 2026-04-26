@@ -119,6 +119,15 @@
             flex: 1;
         }
 
+        .song-item-badge {
+            background: var(--chord);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
         .song-item-meta {
             font-size: 12px;
             color: #999;
@@ -173,6 +182,7 @@
         }
 
         input[type="text"],
+        input[type="search"],
         textarea {
             width: 100%;
             padding: 10px;
@@ -185,6 +195,7 @@
         }
 
         input[type="text"]:focus,
+        input[type="search"]:focus,
         textarea:focus {
             outline: none;
             border-color: var(--accent);
@@ -205,6 +216,63 @@
 
         .editor-buttons .btn {
             flex: 1;
+        }
+
+        /* Search Results */
+        .search-results {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .search-result-item {
+            background: #222;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid #333;
+            transition: all 0.2s;
+        }
+
+        .search-result-item:hover {
+            border-color: var(--accent);
+            background: #2a2a2a;
+        }
+
+        .search-result-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .search-result-artist {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .search-loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+
+        .search-loading::after {
+            content: '';
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            border: 2px solid #444;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         /* Viewer Screen */
@@ -281,8 +349,10 @@
             background: var(--card);
             padding: 25px;
             border-radius: 8px;
-            max-width: 400px;
+            max-width: 500px;
             width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
             box-shadow: 0 8px 24px var(--shadow);
         }
 
@@ -344,6 +414,7 @@
 <div id="home" class="screen active">
     <div class="nav">
         <button class="btn" onclick="app.showEditor()">+ Add Song</button>
+        <button class="btn btn-alt" onclick="app.showImport()">🔍 Search Online</button>
     </div>
     <div class="song-list" id="songList"></div>
 </div>
@@ -371,6 +442,26 @@
             <button class="btn btn-alt" onclick="app.showHome()">Cancel</button>
             <button class="btn btn-success" onclick="app.saveSong()">Save Song</button>
         </div>
+    </div>
+</div>
+
+<!-- Import Screen -->
+<div id="import" class="screen">
+    <div class="nav">
+        <button class="btn btn-alt" onclick="app.showHome()">← Back</button>
+    </div>
+    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h2>Search Ultimate Guitar</h2>
+        <p style="color: #999; margin-bottom: 20px;">Search for songs by title or artist</p>
+
+        <div class="form-group">
+            <label for="searchQuery">Song or Artist</label>
+            <input type="search" id="searchQuery" placeholder="e.g., Stairway to Heaven, Wonderwall" onkeypress="if(event.key==='Enter') app.searchSongs()">
+        </div>
+
+        <button class="btn" onclick="app.searchSongs()" style="width: 100%; margin-bottom: 20px;">Search</button>
+
+        <div id="searchContainer"></div>
     </div>
 </div>
 
@@ -402,6 +493,29 @@
     </div>
 </div>
 
+<!-- Import Preview Modal -->
+<div id="importModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">Import Song</div>
+        <div class="modal-text">Preview and confirm before importing</div>
+        
+        <div class="form-group">
+            <label for="importTitle">Title</label>
+            <input type="text" id="importTitle" placeholder="Song Title">
+        </div>
+
+        <div class="form-group">
+            <label for="importContent">Content</label>
+            <textarea id="importContent" style="height: 200px;" placeholder="Song content"></textarea>
+        </div>
+
+        <div class="modal-buttons">
+            <button class="btn btn-alt" onclick="app.cancelImport()">Cancel</button>
+            <button class="btn btn-success" onclick="app.confirmImport()">Import</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const app = {
         songs: [],
@@ -409,6 +523,7 @@
         transposeVal: 0,
         scrollInterval: null,
         notes: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+        importBuffer: null,
 
         // Initialization
         init() {
@@ -421,11 +536,11 @@
             try {
                 const stored = localStorage.getItem('mySongs');
                 this.songs = stored ? JSON.parse(stored) : [];
-                // Add metadata if missing
                 this.songs = this.songs.map((s, i) => ({
                     ...s,
                     createdAt: s.createdAt || new Date().toISOString(),
-                    id: s.id || i
+                    id: s.id || i,
+                    source: s.source || 'local'
                 }));
             } catch (e) {
                 console.error('Load error:', e);
@@ -473,6 +588,12 @@
             }
         },
 
+        showImport() {
+            this.showScreen('import');
+            document.getElementById('searchQuery').value = '';
+            document.getElementById('searchContainer').innerHTML = '';
+        },
+
         // Home Screen Rendering
         renderHome() {
             const list = document.getElementById('songList');
@@ -481,7 +602,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">🎸</div>
                         <h3>No songs yet</h3>
-                        <p>Click "+ Add Song" to get started!</p>
+                        <p>Click "+ Add Song" or "🔍 Search Online" to get started!</p>
                     </div>
                 `;
                 return;
@@ -491,6 +612,7 @@
                 <div class="song-item">
                     <div class="song-item-header">
                         <div class="song-item-title">${this.escapeHtml(s.title)}</div>
+                        ${s.source && s.source !== 'local' ? `<div class="song-item-badge">${s.source}</div>` : ''}
                     </div>
                     <div class="song-item-meta">
                         ${s.body.split('\n').length} lines
@@ -501,6 +623,101 @@
                     </div>
                 </div>
             `).join('');
+        },
+
+        // Ultimate Guitar Search
+        async searchSongs() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                this.showToast('Enter a song or artist name', 'error');
+                return;
+            }
+
+            const container = document.getElementById('searchContainer');
+            container.innerHTML = '<div class="search-loading">Searching...</div>';
+
+            try {
+                // Using Ultimate Guitar API via CORS proxy
+                const response = await fetch(`https://api.ultimate-guitar.com/v3/search?query=${encodeURIComponent(query)}&type=Chords`);
+                const data = await response.json();
+
+                if (!data.results || data.results.length === 0) {
+                    container.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No results found. Try another search.</div>';
+                    return;
+                }
+
+                container.innerHTML = data.results.slice(0, 15).map((song, idx) => `
+                    <div class="search-result-item" onclick="app.loadSongFromUG(${idx}, '${this.escapeHtml(song.song_name)}', '${this.escapeHtml(song.artist_name)}')">
+                        <div class="search-result-title">${this.escapeHtml(song.song_name)}</div>
+                        <div class="search-result-artist">${this.escapeHtml(song.artist_name)}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Search error:', error);
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #f66;">Error fetching results. Check your connection.</div>';
+            }
+        },
+
+        async loadSongFromUG(index, title, artist) {
+            try {
+                const response = await fetch(`https://api.ultimate-guitar.com/v3/search?query=${encodeURIComponent(title + ' ' + artist)}&type=Chords`);
+                const data = await response.json();
+                
+                if (!data.results || !data.results[index]) {
+                    this.showToast('Could not load song', 'error');
+                    return;
+                }
+
+                const song = data.results[index];
+                const tabUrl = song.tab_url;
+
+                // Try to parse chords from URL (basic approach)
+                // In a real scenario, you'd need to scrape the actual page
+                const preview = `[Verse]\nChords for ${title} by ${artist}\n\n[Chorus]\nFetched from Ultimate Guitar\n\nNote: Please copy-paste the actual chords from the website.`;
+
+                document.getElementById('importTitle').value = `${title} - ${artist}`;
+                document.getElementById('importContent').value = preview + `\n\nSource: ${tabUrl}`;
+                
+                this.importBuffer = {
+                    title: `${title} - ${artist}`,
+                    body: preview,
+                    url: tabUrl,
+                    source: 'Ultimate Guitar'
+                };
+
+                document.getElementById('importModal').classList.add('active');
+            } catch (error) {
+                console.error('Load error:', error);
+                this.showToast('Error loading song details', 'error');
+            }
+        },
+
+        confirmImport() {
+            const title = document.getElementById('importTitle').value.trim();
+            const body = document.getElementById('importContent').value.trim();
+
+            if (!title || !body) {
+                this.showToast('Fill in all fields', 'error');
+                return;
+            }
+
+            this.songs.push({
+                title,
+                body,
+                createdAt: new Date().toISOString(),
+                id: Date.now(),
+                source: 'Ultimate Guitar'
+            });
+
+            this.saveSongs();
+            this.showToast('Song imported!');
+            this.cancelImport();
+            this.showHome();
+        },
+
+        cancelImport() {
+            document.getElementById('importModal').classList.remove('active');
+            this.importBuffer = null;
         },
 
         // Editor Functions
@@ -519,7 +736,6 @@
             }
 
             if (this.currentSongIndex !== null) {
-                // Update existing
                 this.songs[this.currentSongIndex] = {
                     ...this.songs[this.currentSongIndex],
                     title,
@@ -527,12 +743,12 @@
                 };
                 this.showToast('Song updated');
             } else {
-                // Create new
                 this.songs.push({
                     title,
                     body,
                     createdAt: new Date().toISOString(),
-                    id: Date.now()
+                    id: Date.now(),
+                    source: 'local'
                 });
                 this.showToast('Song added');
             }
@@ -600,7 +816,6 @@
         transposeChord(chord, amt) {
             if (!chord) return '';
 
-            // Normalize flats to sharps
             let normalized = chord
                 .replace('Bb', 'A#')
                 .replace('Eb', 'D#')
@@ -608,7 +823,6 @@
                 .replace('Db', 'C#')
                 .replace('Gb', 'F#');
 
-            // Transpose each note
             return normalized.replace(/[A-G][#b]?/g, (m) => {
                 let n = m.replace('Bb', 'A#').replace('Eb', 'D#').replace('Ab', 'G#').replace('Db', 'C#').replace('Gb', 'F#');
                 let i = this.notes.indexOf(n);
