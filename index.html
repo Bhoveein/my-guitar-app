@@ -6,14 +6,14 @@
     <title>My Guitar Chords App</title>
     <style>
         :root {
-            --bg: #121212;
-            --card: #1e1e1e;
-            --text: #e0e0e0;
+            --bg: #ffffff;
+            --card: #f5f5f5;
+            --text: #222222;
             --accent: #ffc107;
             --chord: #4dabf7;
             --danger: #ff6b6b;
             --success: #51cf66;
-            --shadow: rgba(0,0,0,0.3);
+            --shadow: rgba(0,0,0,0.1);
         }
 
         * { box-sizing: border-box; }
@@ -34,7 +34,7 @@
             display: flex;
             gap: 10px;
             z-index: 10;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #ddd;
             overflow-x: auto;
             box-shadow: 0 2px 8px var(--shadow);
         }
@@ -57,11 +57,11 @@
         .btn:active { transform: translateY(0); }
 
         .btn-alt {
-            background: #444;
-            color: white;
+            background: #ddd;
+            color: #222;
         }
 
-        .btn-alt:hover { background: #555; }
+        .btn-alt:hover { background: #ccc; }
 
         .btn-danger {
             background: var(--danger);
@@ -95,7 +95,7 @@
             background: var(--card);
             padding: 15px;
             border-radius: 8px;
-            border: 1px solid #333;
+            border: 1px solid #ddd;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -130,7 +130,7 @@
 
         .song-item-meta {
             font-size: 12px;
-            color: #999;
+            color: #666;
             margin-top: 8px;
         }
 
@@ -149,7 +149,7 @@
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #999;
+            color: #666;
         }
 
         .empty-state-icon {
@@ -183,12 +183,13 @@
 
         input[type="text"],
         input[type="url"],
+        input[type="range"],
         textarea {
             width: 100%;
             padding: 10px;
-            background: #222;
-            color: #fff;
-            border: 1px solid #444;
+            background: white;
+            color: var(--text);
+            border: 1px solid #ddd;
             border-radius: 5px;
             font-family: 'Courier New', monospace;
             font-size: 14px;
@@ -225,10 +226,39 @@
             border-radius: 5px;
             margin-bottom: 15px;
             font-size: 13px;
-            color: #ddd;
+            color: #333;
         }
 
         .info-box strong {
+            color: var(--chord);
+        }
+
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .size-control label {
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .size-control input[type="range"] {
+            flex: 1;
+            margin: 0;
+            padding: 0;
+            height: 6px;
+        }
+
+        .size-value {
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
             color: var(--chord);
         }
 
@@ -242,13 +272,45 @@
             margin: 0;
             font-size: 24px;
             font-weight: 600;
+            color: var(--text);
         }
 
         .viewer-info {
             padding: 0 20px;
             font-size: 12px;
-            color: #999;
+            color: #666;
             margin-bottom: 15px;
+        }
+
+        .viewer-controls {
+            padding: 15px 20px;
+            background: var(--card);
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .viewer-controls label {
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .viewer-controls input[type="range"] {
+            flex: 1;
+            max-width: 200px;
+            margin: 0;
+            padding: 0;
+            height: 6px;
+        }
+
+        .size-display {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--chord);
+            font-size: 13px;
         }
 
         #viewContent {
@@ -257,31 +319,34 @@
 
         pre {
             font-family: 'Courier New', monospace;
-            font-size: 1.1rem;
-            line-height: 2.2;
+            font-size: var(--chord-size, 1.1rem);
+            line-height: 1.6;
             white-space: pre-wrap;
             word-wrap: break-word;
-            background: rgba(0,0,0,0.2);
+            background: #f9f9f9;
             padding: 15px;
             border-radius: 5px;
             overflow-x: auto;
+            border: 1px solid #ddd;
         }
 
         .c {
             color: var(--chord);
             font-weight: bold;
-            background: rgba(77,171,247,0.2);
+            background: rgba(77,171,247,0.15);
             padding: 2px 4px;
             border-radius: 3px;
             position: relative;
-            transform: translateY(-1.2em);
+            transform: translateY(-0.8em);
+            font-size: 0.85em;
         }
 
         .line {
             position: relative;
-            display: inline-block;
+            display: block;
             width: 100%;
-            margin-bottom: 1.2em;
+            margin-bottom: 0.3em;
+            word-wrap: break-word;
         }
 
         /* Modal */
@@ -293,7 +358,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.3);
             align-items: center;
             justify-content: center;
         }
@@ -303,7 +368,7 @@
         }
 
         .modal-content {
-            background: var(--card);
+            background: white;
             padding: 25px;
             border-radius: 8px;
             max-width: 500px;
@@ -311,16 +376,18 @@
             max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 8px 24px var(--shadow);
+            border: 1px solid #ddd;
         }
 
         .modal-title {
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 12px;
+            color: var(--text);
         }
 
         .modal-text {
-            color: #ccc;
+            color: #666;
             margin-bottom: 20px;
             font-size: 14px;
         }
@@ -347,10 +414,12 @@
             animation: slideIn 0.3s ease-out;
             z-index: 50;
             max-width: 300px;
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
         .toast.error {
             background: var(--danger);
+            color: white;
         }
 
         @keyframes slideIn {
@@ -363,6 +432,12 @@
             .song-list { grid-template-columns: 1fr; }
             .nav { flex-wrap: wrap; }
             .modal-content { width: 95%; }
+            .viewer-controls {
+                flex-wrap: wrap;
+            }
+            .viewer-controls input[type="range"] {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -384,7 +459,7 @@
     </div>
     <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
         <h2>Add/Edit Song</h2>
-        <p style="color: #999; margin-bottom: 20px;">Use [Chord] format for chords (e.g., [G], [Am7], [Dmaj])</p>
+        <p style="color: #666; margin-bottom: 20px;">Use [Chord] format for chords (e.g., [G], [Am7], [Dmaj])</p>
 
         <div class="form-group">
             <label for="songTitle">Song Title</label>
@@ -454,6 +529,13 @@
     </div>
     <h2 id="viewTitle"></h2>
     <div class="viewer-info" id="viewerInfo"></div>
+    
+    <div class="viewer-controls">
+        <label for="textSizeSlider">Text Size:</label>
+        <input type="range" id="textSizeSlider" min="60" max="150" value="100" onchange="app.setTextSize(this.value)">
+        <span class="size-display" id="sizeDisplay">100%</span>
+    </div>
+
     <div id="viewContent"></div>
 </div>
 
@@ -475,11 +557,13 @@
         currentSongIndex: null,
         transposeVal: 0,
         scrollInterval: null,
+        textSize: 100,
         notes: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
 
         // Initialization
         init() {
             this.loadSongs();
+            this.loadTextSize();
             this.renderHome();
         },
 
@@ -512,6 +596,30 @@
                     console.error('Save error:', e);
                     this.showToast('Error saving songs', 'error');
                 }
+            }
+        },
+
+        loadTextSize() {
+            const size = localStorage.getItem('textSize');
+            if (size) {
+                this.textSize = parseInt(size);
+            }
+        },
+
+        saveTextSize() {
+            localStorage.setItem('textSize', this.textSize);
+        },
+
+        setTextSize(value) {
+            this.textSize = parseInt(value);
+            this.saveTextSize();
+            document.getElementById('sizeDisplay').textContent = value + '%';
+            
+            const sizeInRem = (1.1 * value / 100);
+            document.documentElement.style.setProperty('--chord-size', sizeInRem + 'rem');
+            
+            if (this.currentSongIndex !== null) {
+                this.renderSong();
             }
         },
 
@@ -675,6 +783,10 @@
             this.currentSongIndex = index;
             this.transposeVal = 0;
             this.showScreen('viewer');
+            document.getElementById('textSizeSlider').value = this.textSize;
+            document.getElementById('sizeDisplay').textContent = this.textSize + '%';
+            const sizeInRem = (1.1 * this.textSize / 100);
+            document.documentElement.style.setProperty('--chord-size', sizeInRem + 'rem');
             this.renderSong();
         },
 
